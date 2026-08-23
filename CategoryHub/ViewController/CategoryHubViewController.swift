@@ -14,19 +14,17 @@ final class CategoryHubViewController: UIViewController {
   
   private let categoryHeaderView = CategoryHeaderView()
   
-  private let contentView: UIView = {
-    let view = UIView()
-    view.backgroundColor = .clear
-    return view
-  }()
-  
-  private let placeholderLabel: UILabel = {
-    let label = UILabel()
-    label.text = "Content Area"
-    label.textColor = .systemGray
-    label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
-    label.textAlignment = .center
-    return label
+  private lazy var collectionView: UICollectionView = {
+    let layout = createCompositionalLayout()
+    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+    collectionView.backgroundColor = .systemGroupedBackground
+    collectionView.dataSource = self
+    collectionView.register(SliderBannerCell.self, forCellWithReuseIdentifier: SliderBannerCell.reuseIdentifier)
+    collectionView.register(TextContentCell.self, forCellWithReuseIdentifier: TextContentCell.reuseIdentifier)
+    collectionView.register(VideoBannerCell.self, forCellWithReuseIdentifier: VideoBannerCell.reuseIdentifier)
+    collectionView.register(StaticBannerCell.self, forCellWithReuseIdentifier: StaticBannerCell.reuseIdentifier)
+    collectionView.register(HighlightedProductCell.self, forCellWithReuseIdentifier: HighlightedProductCell.reuseIdentifier)
+    return collectionView
   }()
   
   override var preferredStatusBarStyle: UIStatusBarStyle {
@@ -43,7 +41,7 @@ final class CategoryHubViewController: UIViewController {
     view.backgroundColor = .black
     
     setupCategoryHeaderView()
-    setupContentView()
+    setupCollectionView()
   }
   
   // MARK: - Category Header View Setup
@@ -68,18 +66,147 @@ final class CategoryHubViewController: UIViewController {
     }
   }
   
-  // MARK: - Content View Setup
-  private func setupContentView() {
-    view.addSubview(contentView)
-    contentView.addSubview(placeholderLabel)
+  // MARK: - CollectionView Setup
+  private func setupCollectionView() {
+    view.addSubview(collectionView)
     
-    contentView.snp.makeConstraints { make in
+    collectionView.snp.makeConstraints { make in
       make.top.equalTo(categoryHeaderView.snp.bottom)
       make.leading.trailing.bottom.equalToSuperview()
     }
+  }
+  
+  // MARK: - Compositional Layout Setup
+  private func createCompositionalLayout() -> UICollectionViewCompositionalLayout {
+    return UICollectionViewCompositionalLayout { [weak self] sectionIndex, layoutEnvironment in
+      guard let self = self else { return nil }
+      
+      switch sectionIndex {
+      case 0:
+        return self.createSliderBannerSectionLayout()
+      case 1:
+        return self.createTextContentSectionLayout()
+      case 2:
+        return self.createVideoBannerSectionLayout()
+      case 3:
+        return self.createStaticBannerSectionLayout()
+      case 4:
+        return self.createHighlightedProductSectionLayout()
+      default:
+        return nil
+      }
+    }
+  }
+  
+  private func createSliderBannerSectionLayout() -> NSCollectionLayoutSection {
+    let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalHeight(1.0))
+    let item = NSCollectionLayoutItem(layoutSize: itemSize)
     
-    placeholderLabel.snp.makeConstraints { make in
-      make.center.equalToSuperview()
+    let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.92), heightDimension: .absolute(220))
+    let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, subitems: [item])
+    
+    let section = NSCollectionLayoutSection(group: group)
+    section.orthogonalScrollingBehavior = .groupPaging
+    section.interGroupSpacing = 12
+    section.contentInsets = NSDirectionalEdgeInsets(top: 16, leading: 16, bottom: 20, trailing: 16)
+    return section
+  }
+  
+  private func createTextContentSectionLayout() -> NSCollectionLayoutSection {
+    let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .estimated(80))
+    let item = NSCollectionLayoutItem(layoutSize: itemSize)
+    
+    let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .estimated(80))
+    let group = NSCollectionLayoutGroup.vertical(layoutSize: groupSize, subitems: [item])
+    
+    let section = NSCollectionLayoutSection(group: group)
+    section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 20, trailing: 16)
+    return section
+  }
+  
+  private func createVideoBannerSectionLayout() -> NSCollectionLayoutSection {
+    let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalHeight(1.0))
+    let item = NSCollectionLayoutItem(layoutSize: itemSize)
+    
+    let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(200))
+    let group = NSCollectionLayoutGroup.vertical(layoutSize: groupSize, subitems: [item])
+    
+    let section = NSCollectionLayoutSection(group: group)
+    section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 20, trailing: 16)
+    return section
+  }
+  
+  private func createStaticBannerSectionLayout() -> NSCollectionLayoutSection {
+    let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalHeight(1.0))
+    let item = NSCollectionLayoutItem(layoutSize: itemSize)
+    
+    let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(140))
+    let group = NSCollectionLayoutGroup.vertical(layoutSize: groupSize, subitems: [item])
+    
+    let section = NSCollectionLayoutSection(group: group)
+    section.interGroupSpacing = 12
+    section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 20, trailing: 16)
+    return section
+  }
+  
+  private func createHighlightedProductSectionLayout() -> NSCollectionLayoutSection {
+    let itemSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .fractionalHeight(1.0))
+    let item = NSCollectionLayoutItem(layoutSize: itemSize)
+    item.contentInsets = NSDirectionalEdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6)
+    
+    let groupSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(180))
+    let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupSize, repeatingSubitem: item, count: 2)
+    
+    let section = NSCollectionLayoutSection(group: group)
+    section.interGroupSpacing = 12
+    section.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 10, bottom: 20, trailing: 10)
+    return section
+  }
+}
+
+// MARK: - UICollectionViewDataSource (Static Implementation)
+extension CategoryHubViewController: UICollectionViewDataSource {
+  
+  func numberOfSections(in collectionView: UICollectionView) -> Int {
+    return 5
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+    switch section {
+    case 0:
+      return 3
+    case 1:
+      return 1
+    case 2:
+      return 1
+    case 3:
+      return 2
+    case 4:
+      return 4
+    default:
+      return 0
+    }
+  }
+  
+  func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+    switch indexPath.section {
+    case 0:
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath)
+      return cell
+    case 1:
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath)
+      return cell
+    case 2:
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath)
+      return cell
+    case 3:
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath)
+      return cell
+    case 4:
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath)
+      return cell
+    default:
+      return UICollectionViewCell()
     }
   }
 }
