@@ -6,16 +6,21 @@
 //
 
 import SwiftUI
+import UIKit
+
+struct CategoryHubViewRepresentable: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UINavigationController {
+        let categoryVC = CategoryHubViewController()
+        return UINavigationController(rootViewController: categoryVC)
+    }
+    
+    func updateUIViewController(_ uiViewController: UINavigationController, context: Context) {}
+}
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Update Testing setup!")
-        }
-        .padding()
+        CategoryHubViewRepresentable()
+            .ignoresSafeArea()
     }
 }
 
