@@ -78,25 +78,25 @@ final class CategoryHubViewController: UIViewController {
   
   // MARK: - Compositional Layout Setup
   private func createCompositionalLayout() -> UICollectionViewCompositionalLayout {
-    return UICollectionViewCompositionalLayout { [weak self] sectionIndex, layoutEnvironment in
-      guard let self = self, let sectionType = Section(rawValue: sectionIndex) else { return nil }
+    return UICollectionViewCompositionalLayout { sectionIndex, _ in
+      guard let sectionType = Section(rawValue: sectionIndex) else { return nil }
       
       switch sectionType {
       case .sliderBanner:
-        return self.createSliderBannerSectionLayout()
+        return CategoryHubViewController.createSliderBannerSectionLayout()
       case .textContent:
-        return self.createTextContentSectionLayout()
+        return CategoryHubViewController.createTextContentSectionLayout()
       case .videoBanner:
-        return self.createVideoBannerSectionLayout()
+        return CategoryHubViewController.createVideoBannerSectionLayout()
       case .staticBanner:
-        return self.createStaticBannerSectionLayout()
+        return CategoryHubViewController.createStaticBannerSectionLayout()
       case .highlightedProduct:
-        return self.createHighlightedProductSectionLayout()
+        return CategoryHubViewController.createHighlightedProductSectionLayout()
       }
     }
   }
   
-  private func createSliderBannerSectionLayout() -> NSCollectionLayoutSection {
+  private static func createSliderBannerSectionLayout() -> NSCollectionLayoutSection {
     CompositionalLayoutBuilder()
       .withItemLayoutSize(NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalHeight(1.0)))
       .withGroupLayoutSize(NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.92), heightDimension: .absolute(220)))
@@ -106,7 +106,7 @@ final class CategoryHubViewController: UIViewController {
       .build()
   }
   
-  private func createTextContentSectionLayout() -> NSCollectionLayoutSection {
+  private static func createTextContentSectionLayout() -> NSCollectionLayoutSection {
     CompositionalLayoutBuilder()
       .withItemLayoutSize(NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .estimated(80)))
       .withGroupLayoutSize(NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .estimated(80)))
@@ -114,7 +114,7 @@ final class CategoryHubViewController: UIViewController {
       .build()
   }
   
-  private func createVideoBannerSectionLayout() -> NSCollectionLayoutSection {
+  private static func createVideoBannerSectionLayout() -> NSCollectionLayoutSection {
     CompositionalLayoutBuilder()
       .withItemLayoutSize(NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalHeight(1.0)))
       .withGroupLayoutSize(NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(200)))
@@ -122,7 +122,7 @@ final class CategoryHubViewController: UIViewController {
       .build()
   }
   
-  private func createStaticBannerSectionLayout() -> NSCollectionLayoutSection {
+  private static func createStaticBannerSectionLayout() -> NSCollectionLayoutSection {
     CompositionalLayoutBuilder()
       .withItemLayoutSize(NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .fractionalHeight(1.0)))
       .withGroupLayoutSize(NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(140)))
@@ -131,7 +131,7 @@ final class CategoryHubViewController: UIViewController {
       .build()
   }
   
-  private func createHighlightedProductSectionLayout() -> NSCollectionLayoutSection {
+  private static func createHighlightedProductSectionLayout() -> NSCollectionLayoutSection {
     CompositionalLayoutBuilder()
       .withItemLayoutSize(NSCollectionLayoutSize(widthDimension: .fractionalWidth(0.5), heightDimension: .fractionalHeight(1.0)))
       .withItemInsets(NSDirectionalEdgeInsets(top: 0, leading: 6, bottom: 0, trailing: 6))
