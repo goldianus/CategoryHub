@@ -37,11 +37,12 @@ final class TextContentCell: UICollectionViewCell {
     stack.snp.makeConstraints { make in
       make.edges.equalToSuperview().inset(16)
     }
-    
-    // Set dummy text directly for static display
-    titleLabel.text = "Dummy Info Title"
-    descriptionLabel.text = "This is a placeholder description text that can span multiple lines to demonstrate the estimated height functionality in Compositional Layout."
   }
   
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+  
+  func configure(title: String?, textContent: String?) {
+    titleLabel.text = title
+    descriptionLabel.text = textContent
+  }
 }

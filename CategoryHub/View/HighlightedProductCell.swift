@@ -53,4 +53,9 @@ final class HighlightedProductCell: UICollectionViewCell {
   }
   
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+  
+  func configure(categoryName: String, itemIndex: Int) {
+    titleLabel.text = "\(categoryName) Item #\(itemIndex + 1)"
+    priceLabel.text = "Rp \((itemIndex + 1) * 250).000"
+  }
 }

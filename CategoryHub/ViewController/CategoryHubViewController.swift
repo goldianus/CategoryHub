@@ -8,11 +8,14 @@
 import UIKit
 import SwiftUI
 import SnapKit
+import Combine
 
 // MARK: - CategoryHubViewController Implementation
 final class CategoryHubViewController: UIViewController {
   
   private let categoryHeaderView = CategoryHeaderView()
+  private let viewModel = CategoryHubViewModel()
+  private var cancellables = Set<AnyCancellable>()
   
   private lazy var collectionView: UICollectionView = {
     let layout = createCompositionalLayout()
@@ -42,6 +45,7 @@ final class CategoryHubViewController: UIViewController {
     
     setupCategoryHeaderView()
     setupCollectionView()
+    bindViewModel()
   }
   
   // MARK: - Category Header View Setup
@@ -61,9 +65,22 @@ final class CategoryHubViewController: UIViewController {
       print("Search bar tapped")
     }
     
-    categoryHeaderView.onCategorySelected = { index, categoryTitle in
+    categoryHeaderView.onCategorySelected = { [weak self] index, categoryTitle in
       print("Selected category index: \(index), title: \(categoryTitle)")
+      self?.viewModel.selectCategory(at: index)
     }
+  }
+  
+  // MARK: - View Model Binding
+  private func bindViewModel() {
+    categoryHeaderView.setCategories(viewModel.categories, defaultIndex: viewModel.selectedCategoryIndex)
+    
+    viewModel.$sectionsData
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] _ in
+        self?.collectionView.reloadData()
+      }
+      .store(in: &cancellables)
   }
   
   // MARK: - CollectionView Setup
@@ -80,6 +97,14 @@ final class CategoryHubViewController: UIViewController {
   private func createCompositionalLayout() -> UICollectionViewCompositionalLayout {
     return UICollectionViewCompositionalLayout { [weak self] sectionIndex, layoutEnvironment in
       guard let self = self, let sectionType = Section(rawValue: sectionIndex) else { return nil }
+      
+      if self.viewModel.numberOfItems(at: sectionIndex) == 0 {
+        let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(0.01)))
+        let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(0.01)), subitems: [item])
+        let section = NSCollectionLayoutSection(group: group)
+        section.contentInsets = .zero
+        return section
+      }
       
       switch sectionType {
       case .sliderBanner:
@@ -142,7 +167,7 @@ final class CategoryHubViewController: UIViewController {
   }
 }
 
-// MARK: - UICollectionViewDataSource (Static Implementation)
+// MARK: - UICollectionViewDataSource (Dynamic Implementation)
 extension CategoryHubViewController: UICollectionViewDataSource {
   
   func numberOfSections(in collectionView: UICollectionView) -> Int {
@@ -150,20 +175,7 @@ extension CategoryHubViewController: UICollectionViewDataSource {
   }
   
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    guard let sectionType = Section(rawValue: section) else { return 0 }
-    
-    switch sectionType {
-    case .sliderBanner:
-      return 3
-    case .textContent:
-      return 1
-    case .videoBanner:
-      return 1
-    case .staticBanner:
-      return 2
-    case .highlightedProduct:
-      return 4
-    }
+    return viewModel.numberOfItems(at: section)
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -171,17 +183,41 @@ extension CategoryHubViewController: UICollectionViewDataSource {
       return UICollectionViewCell()
     }
     
+    let sectionData = viewModel.sectionData(at: indexPath.section)
+    
     switch sectionType {
     case .sliderBanner:
-      return collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath)
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath) as! SliderBannerCell
+      if let banners = sectionData?.banners, banners.indices.contains(indexPath.item) {
+        cell.configure(with: banners[indexPath.item])
+      } else {
+        cell.configure(with: sectionData?.banners?.first)
+      }
+      return cell
+      
     case .textContent:
-      return collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath)
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath) as! TextContentCell
+      cell.configure(title: sectionData?.title, textContent: sectionData?.textContent)
+      return cell
+      
     case .videoBanner:
-      return collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath)
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath) as! VideoBannerCell
+      cell.configure(title: sectionData?.title, description: sectionData?.description)
+      return cell
+      
     case .staticBanner:
-      return collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath)
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath) as! StaticBannerCell
+      if let banners = sectionData?.banners, banners.indices.contains(indexPath.item) {
+        cell.configure(with: banners[indexPath.item], sectionTitle: sectionData?.title)
+      } else {
+        cell.configure(with: sectionData?.banners?.first, sectionTitle: sectionData?.title)
+      }
+      return cell
+      
     case .highlightedProduct:
-      return collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath)
+      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath) as! HighlightedProductCell
+      cell.configure(categoryName: viewModel.selectedCategoryName, itemIndex: indexPath.item)
+      return cell
     }
   }
 }

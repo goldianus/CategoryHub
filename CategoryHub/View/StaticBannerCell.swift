@@ -20,13 +20,30 @@ final class StaticBannerCell: UICollectionViewCell {
     return imgView
   }()
   
+  private let titleLabel: UILabel = {
+    let label = UILabel()
+    label.font = UIFont.systemFont(ofSize: 16, weight: .bold)
+    label.textColor = .white
+    return label
+  }()
+  
   override init(frame: CGRect) {
     super.init(frame: frame)
     contentView.addSubview(placeholderImageView)
+    placeholderImageView.addSubview(titleLabel)
+    
     placeholderImageView.snp.makeConstraints { make in
       make.edges.equalToSuperview()
+    }
+    
+    titleLabel.snp.makeConstraints { make in
+      make.leading.trailing.bottom.equalToSuperview().inset(12)
     }
   }
   
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+  
+  func configure(with banner: ContentManagementSystemBanner?, sectionTitle: String?) {
+    titleLabel.text = banner?.imageTitle ?? sectionTitle ?? "Static Banner"
+  }
 }
