@@ -7,6 +7,15 @@
 
 import Foundation
 
+// MARK: - Section Identifier
+enum Section: Int, CaseIterable {
+  case sliderBanner
+  case textContent
+  case videoBanner
+  case staticBanner
+  case highlightedProduct
+}
+
 // MARK: - ContentManagementSystemResponse
 public struct ContentManagementSystemResponse: Codable, Hashable {
   public let errorMessage: String?

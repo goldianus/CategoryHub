@@ -79,21 +79,19 @@ final class CategoryHubViewController: UIViewController {
   // MARK: - Compositional Layout Setup
   private func createCompositionalLayout() -> UICollectionViewCompositionalLayout {
     return UICollectionViewCompositionalLayout { [weak self] sectionIndex, layoutEnvironment in
-      guard let self = self else { return nil }
+      guard let self = self, let sectionType = Section(rawValue: sectionIndex) else { return nil }
       
-      switch sectionIndex {
-      case 0:
+      switch sectionType {
+      case .sliderBanner:
         return self.createSliderBannerSectionLayout()
-      case 1:
+      case .textContent:
         return self.createTextContentSectionLayout()
-      case 2:
+      case .videoBanner:
         return self.createVideoBannerSectionLayout()
-      case 3:
+      case .staticBanner:
         return self.createStaticBannerSectionLayout()
-      case 4:
+      case .highlightedProduct:
         return self.createHighlightedProductSectionLayout()
-      default:
-        return nil
       }
     }
   }
@@ -148,45 +146,42 @@ final class CategoryHubViewController: UIViewController {
 extension CategoryHubViewController: UICollectionViewDataSource {
   
   func numberOfSections(in collectionView: UICollectionView) -> Int {
-    return 5
+    return Section.allCases.count
   }
   
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    switch section {
-    case 0:
+    guard let sectionType = Section(rawValue: section) else { return 0 }
+    
+    switch sectionType {
+    case .sliderBanner:
       return 3
-    case 1:
+    case .textContent:
       return 1
-    case 2:
+    case .videoBanner:
       return 1
-    case 3:
+    case .staticBanner:
       return 2
-    case 4:
+    case .highlightedProduct:
       return 4
-    default:
-      return 0
     }
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-    switch indexPath.section {
-    case 0:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath)
-      return cell
-    case 1:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath)
-      return cell
-    case 2:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath)
-      return cell
-    case 3:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath)
-      return cell
-    case 4:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath)
-      return cell
-    default:
+    guard let sectionType = Section(rawValue: indexPath.section) else {
       return UICollectionViewCell()
+    }
+    
+    switch sectionType {
+    case .sliderBanner:
+      return collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath)
+    case .textContent:
+      return collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath)
+    case .videoBanner:
+      return collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath)
+    case .staticBanner:
+      return collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath)
+    case .highlightedProduct:
+      return collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath)
     }
   }
 }
