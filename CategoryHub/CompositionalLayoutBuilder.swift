@@ -5,7 +5,6 @@
 //  Created by Goldianus SM on 24/08/26.
 //
 
-import Foundation
 import UIKit
 
 public struct CompositionalLayoutBuilder {
@@ -14,21 +13,12 @@ public struct CompositionalLayoutBuilder {
     heightDimension: .estimated(1000)
   )
   
-  private var itemLayoutSize: NSCollectionLayoutSize?
+  private var itemLayoutSize = CompositionalLayoutBuilder.defaultLayoutSize
   private var itemInsets: NSDirectionalEdgeInsets = .zero
-  private var itemInterSpacing: NSCollectionLayoutSpacing?
   
-  private var groupLayoutSize: NSCollectionLayoutSize?
-  private var groupInsets: NSDirectionalEdgeInsets = .zero
-  private var groupInterSpacing: CGFloat?
+  private var groupLayoutSize = CompositionalLayoutBuilder.defaultLayoutSize
   
-  private var headerLayoutSize: NSCollectionLayoutSize?
-  private var headerInsets: NSDirectionalEdgeInsets = .zero
-  private var headerIsPinToVisibleBounds = false
-  
-  private var footerLayoutSize: NSCollectionLayoutSize?
-  private var footerInsets: NSDirectionalEdgeInsets = .zero
-  
+  private var sectionInterGroupSpacing: CGFloat = 0
   private var sectionInsets: NSDirectionalEdgeInsets = .zero
   private var orthogonalScrollingBehavior: UICollectionLayoutSectionOrthogonalScrollingBehavior = .none
   
@@ -46,52 +36,15 @@ public struct CompositionalLayoutBuilder {
     return builder
   }
   
-  public func withGroupInterItemSpacing(_ spacing: NSCollectionLayoutSpacing) -> Self {
-    var builder = self
-    builder.itemInterSpacing = spacing
-    return builder
-  }
-  
   public func withGroupLayoutSize(_ size: NSCollectionLayoutSize) -> Self {
     var builder = self
     builder.groupLayoutSize = size
     return builder
   }
   
-  public func withGroupInsets(_ insets: NSDirectionalEdgeInsets) -> Self {
-    var builder = self
-    builder.groupInsets = insets
-    return builder
-  }
-  
   public func withSectionInterGroupSpacing(_ spacing: CGFloat) -> Self {
     var builder = self
-    builder.groupInterSpacing = spacing
-    return builder
-  }
-  
-  public func withHeaderLayoutSize(_ size: NSCollectionLayoutSize, isPinToVisibleBounds: Bool = false) -> Self {
-    var builder = self
-    builder.headerLayoutSize = size
-    builder.headerIsPinToVisibleBounds = isPinToVisibleBounds
-    return builder
-  }
-  
-  public func withHeaderInsets(_ insets: NSDirectionalEdgeInsets) -> Self {
-    var builder = self
-    builder.headerInsets = insets
-    return builder
-  }
-  
-  public func withFooterLayoutSize(_ size: NSCollectionLayoutSize) -> Self {
-    var builder = self
-    builder.footerLayoutSize = size
-    return builder
-  }
-  
-  public func withFooterInsets(_ insets: NSDirectionalEdgeInsets) -> Self {
-    var builder = self
-    builder.footerInsets = insets
+    builder.sectionInterGroupSpacing = spacing
     return builder
   }
   
@@ -107,82 +60,32 @@ public struct CompositionalLayoutBuilder {
     return builder
   }
   
-  public func build(subItems: [NSCollectionLayoutItem]) -> NSCollectionLayoutSection {
-    let group = NSCollectionLayoutGroup.horizontal(
-      layoutSize: groupLayoutSize ?? Self.defaultLayoutSize,
-      subitems: subItems
-    )
-    group.contentInsets = groupInsets
-    return configureSection(with: group)
+  public func build() -> NSCollectionLayoutSection {
+    let group = NSCollectionLayoutGroup.horizontal(layoutSize: groupLayoutSize, subitems: [makeItem()])
+    return makeSection(with: group)
   }
   
   public func build(repeatingSubItemCount: Int) -> NSCollectionLayoutSection {
-    let item = NSCollectionLayoutItem(layoutSize: itemLayoutSize ?? Self.defaultLayoutSize)
-    item.contentInsets = itemInsets
-    
     let group = NSCollectionLayoutGroup.horizontal(
-      layoutSize: groupLayoutSize ?? Self.defaultLayoutSize,
-      subitem: item,
+      layoutSize: groupLayoutSize,
+      repeatingSubitem: makeItem(),
       count: repeatingSubItemCount
     )
-    group.contentInsets = groupInsets
-    
-    if let itemInterSpacing = itemInterSpacing {
-      group.interItemSpacing = itemInterSpacing
-    }
-    
-    return configureSection(with: group)
-  }
-  
-  public func build() -> NSCollectionLayoutSection {
-    let item = NSCollectionLayoutItem(layoutSize: itemLayoutSize ?? Self.defaultLayoutSize)
-    item.contentInsets = itemInsets
-    
-    let group = NSCollectionLayoutGroup.horizontal(
-      layoutSize: groupLayoutSize ?? Self.defaultLayoutSize,
-      subitems: [item]
-    )
-    group.contentInsets = groupInsets
-    
-    if let itemInterSpacing = itemInterSpacing {
-      group.interItemSpacing = itemInterSpacing
-    }
-    
-    return configureSection(with: group)
+    return makeSection(with: group)
   }
   
   // MARK: - Private Helpers
-  private func configureSection(with group: NSCollectionLayoutGroup) -> NSCollectionLayoutSection {
+  private func makeItem() -> NSCollectionLayoutItem {
+    let item = NSCollectionLayoutItem(layoutSize: itemLayoutSize)
+    item.contentInsets = itemInsets
+    return item
+  }
+  
+  private func makeSection(with group: NSCollectionLayoutGroup) -> NSCollectionLayoutSection {
     let section = NSCollectionLayoutSection(group: group)
     section.contentInsets = sectionInsets
-    
-    if let groupInterSpacing = groupInterSpacing {
-      section.interGroupSpacing = groupInterSpacing
-    }
-    
-    if let headerLayoutSize = headerLayoutSize {
-      let header = NSCollectionLayoutBoundarySupplementaryItem(
-        layoutSize: headerLayoutSize,
-        elementKind: UICollectionView.elementKindSectionHeader,
-        alignment: .topLeading
-      )
-      header.pinToVisibleBounds = headerIsPinToVisibleBounds
-      header.contentInsets = headerInsets
-      section.boundarySupplementaryItems.append(header)
-    }
-    
-    if let footerLayoutSize = footerLayoutSize {
-      let footer = NSCollectionLayoutBoundarySupplementaryItem(
-        layoutSize: footerLayoutSize,
-        elementKind: UICollectionView.elementKindSectionFooter,
-        alignment: .bottom
-      )
-      footer.contentInsets = footerInsets
-      section.boundarySupplementaryItems.append(footer)
-    }
-    
+    section.interGroupSpacing = sectionInterGroupSpacing
     section.orthogonalScrollingBehavior = orthogonalScrollingBehavior
-    
     return section
   }
 }
