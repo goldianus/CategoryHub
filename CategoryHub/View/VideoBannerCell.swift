@@ -32,11 +32,14 @@ final class VideoBannerCell: UICollectionViewCell {
     return label
   }()
   
+  private let shimmerView = ShimmerView()
+  
   override init(frame: CGRect) {
     super.init(frame: frame)
     contentView.addSubview(containerView)
     containerView.addSubview(playIcon)
     containerView.addSubview(titleLabel)
+    contentView.addSubview(shimmerView)
     
     containerView.snp.makeConstraints { make in
       make.edges.equalToSuperview()
@@ -51,11 +54,23 @@ final class VideoBannerCell: UICollectionViewCell {
       make.top.equalTo(playIcon.snp.bottom).offset(12)
       make.leading.trailing.equalToSuperview().inset(16)
     }
+    
+    shimmerView.snp.makeConstraints { make in
+      make.edges.equalToSuperview()
+    }
   }
   
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
   
   func configure(title: String?, description: String?) {
     titleLabel.text = title ?? description
+  }
+  
+  func showShimmer(_ show: Bool) {
+    if show {
+      shimmerView.startAnimating()
+    } else {
+      shimmerView.stopAnimating()
+    }
   }
 }

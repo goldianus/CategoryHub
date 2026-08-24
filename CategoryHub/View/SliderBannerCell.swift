@@ -28,10 +28,13 @@ final class SliderBannerCell: UICollectionViewCell {
     return label
   }()
   
+  private let shimmerView = ShimmerView()
+  
   override init(frame: CGRect) {
     super.init(frame: frame)
     contentView.addSubview(placeholderImageView)
     placeholderImageView.addSubview(titleLabel)
+    contentView.addSubview(shimmerView)
     
     placeholderImageView.snp.makeConstraints { make in
       make.edges.equalToSuperview()
@@ -40,11 +43,23 @@ final class SliderBannerCell: UICollectionViewCell {
     titleLabel.snp.makeConstraints { make in
       make.leading.trailing.bottom.equalToSuperview().inset(12)
     }
+    
+    shimmerView.snp.makeConstraints { make in
+      make.edges.equalToSuperview()
+    }
   }
   
   required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
   
   func configure(with banner: ContentManagementSystemBanner?) {
     titleLabel.text = banner?.imageTitle ?? banner?.imageContent
+  }
+  
+  func showShimmer(_ show: Bool) {
+    if show {
+      shimmerView.startAnimating()
+    } else {
+      shimmerView.stopAnimating()
+    }
   }
 }

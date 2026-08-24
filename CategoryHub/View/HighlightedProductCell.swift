@@ -33,6 +33,8 @@ final class HighlightedProductCell: UICollectionViewCell {
     return label
   }()
   
+  private let shimmerView = ShimmerView()
+  
   override init(frame: CGRect) {
     super.init(frame: frame)
     contentView.backgroundColor = .systemBackground
@@ -43,12 +45,18 @@ final class HighlightedProductCell: UICollectionViewCell {
     stack.spacing = 6
     
     contentView.addSubview(stack)
+    contentView.addSubview(shimmerView)
+    
     stack.snp.makeConstraints { make in
       make.edges.equalToSuperview().inset(8)
     }
     
     imageView.snp.makeConstraints { make in
       make.height.equalTo(100)
+    }
+    
+    shimmerView.snp.makeConstraints { make in
+      make.edges.equalToSuperview()
     }
   }
   
@@ -57,5 +65,13 @@ final class HighlightedProductCell: UICollectionViewCell {
   func configure(categoryName: String, itemIndex: Int) {
     titleLabel.text = "\(categoryName) Item #\(itemIndex + 1)"
     priceLabel.text = "Rp \((itemIndex + 1) * 250).000"
+  }
+  
+  func showShimmer(_ show: Bool) {
+    if show {
+      shimmerView.startAnimating()
+    } else {
+      shimmerView.stopAnimating()
+    }
   }
 }

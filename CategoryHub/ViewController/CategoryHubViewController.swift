@@ -75,9 +75,9 @@ final class CategoryHubViewController: UIViewController {
   private func bindViewModel() {
     categoryHeaderView.setCategories(viewModel.categories, defaultIndex: viewModel.selectedCategoryIndex)
     
-    viewModel.$sectionsData
+    Publishers.CombineLatest(viewModel.$sectionsData, viewModel.$isLoading)
       .receive(on: DispatchQueue.main)
-      .sink { [weak self] _ in
+      .sink { [weak self] _, _ in
         self?.collectionView.reloadData()
       }
       .store(in: &cancellables)
@@ -167,7 +167,7 @@ final class CategoryHubViewController: UIViewController {
   }
 }
 
-// MARK: - UICollectionViewDataSource (Dynamic Implementation)
+// MARK: - UICollectionViewDataSource (Dynamic Implementation with Shimmer)
 extension CategoryHubViewController: UICollectionViewDataSource {
   
   func numberOfSections(in collectionView: UICollectionView) -> Int {
@@ -184,39 +184,55 @@ extension CategoryHubViewController: UICollectionViewDataSource {
     }
     
     let sectionData = viewModel.sectionData(at: indexPath.section)
+    let isLoading = viewModel.isLoading
     
     switch sectionType {
     case .sliderBanner:
       let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath) as! SliderBannerCell
-      if let banners = sectionData?.banners, banners.indices.contains(indexPath.item) {
-        cell.configure(with: banners[indexPath.item])
-      } else {
-        cell.configure(with: sectionData?.banners?.first)
+      cell.showShimmer(isLoading)
+      if !isLoading {
+        if let banners = sectionData?.banners, banners.indices.contains(indexPath.item) {
+          cell.configure(with: banners[indexPath.item])
+        } else {
+          cell.configure(with: sectionData?.banners?.first)
+        }
       }
       return cell
       
     case .textContent:
       let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath) as! TextContentCell
-      cell.configure(title: sectionData?.title, textContent: sectionData?.textContent)
+      cell.showShimmer(isLoading)
+      if !isLoading {
+        cell.configure(title: sectionData?.title, textContent: sectionData?.textContent)
+      }
       return cell
       
     case .videoBanner:
       let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath) as! VideoBannerCell
-      cell.configure(title: sectionData?.title, description: sectionData?.description)
+      cell.showShimmer(isLoading)
+      if !isLoading {
+        cell.configure(title: sectionData?.title, description: sectionData?.description)
+      }
       return cell
       
     case .staticBanner:
       let cell = collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath) as! StaticBannerCell
-      if let banners = sectionData?.banners, banners.indices.contains(indexPath.item) {
-        cell.configure(with: banners[indexPath.item], sectionTitle: sectionData?.title)
-      } else {
-        cell.configure(with: sectionData?.banners?.first, sectionTitle: sectionData?.title)
+      cell.showShimmer(isLoading)
+      if !isLoading {
+        if let banners = sectionData?.banners, banners.indices.contains(indexPath.item) {
+          cell.configure(with: banners[indexPath.item], sectionTitle: sectionData?.title)
+        } else {
+          cell.configure(with: sectionData?.banners?.first, sectionTitle: sectionData?.title)
+        }
       }
       return cell
       
     case .highlightedProduct:
       let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath) as! HighlightedProductCell
-      cell.configure(categoryName: viewModel.selectedCategoryName, itemIndex: indexPath.item)
+      cell.showShimmer(isLoading)
+      if !isLoading {
+        cell.configure(categoryName: viewModel.selectedCategoryName, itemIndex: indexPath.item)
+      }
       return cell
     }
   }

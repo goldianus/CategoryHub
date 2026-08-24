@@ -26,6 +26,8 @@ final class TextContentCell: UICollectionViewCell {
     return label
   }()
   
+  private let shimmerView = ShimmerView()
+  
   override init(frame: CGRect) {
     super.init(frame: frame)
     
@@ -34,8 +36,14 @@ final class TextContentCell: UICollectionViewCell {
     stack.spacing = 8
     
     contentView.addSubview(stack)
+    contentView.addSubview(shimmerView)
+    
     stack.snp.makeConstraints { make in
       make.edges.equalToSuperview().inset(16)
+    }
+    
+    shimmerView.snp.makeConstraints { make in
+      make.edges.equalToSuperview().inset(8)
     }
   }
   
@@ -44,5 +52,13 @@ final class TextContentCell: UICollectionViewCell {
   func configure(title: String?, textContent: String?) {
     titleLabel.text = title
     descriptionLabel.text = textContent
+  }
+  
+  func showShimmer(_ show: Bool) {
+    if show {
+      shimmerView.startAnimating()
+    } else {
+      shimmerView.stopAnimating()
+    }
   }
 }

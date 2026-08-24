@@ -47,12 +47,13 @@ final class CategoryHubViewModel {
   
   func fetchData(for categoryName: String) {
     isLoading = true
+    sectionsData = []
     
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+    DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
       guard let self = self else { return }
-      self.isLoading = false
       let response = CMSMockData.getMockResponse(for: categoryName)
       self.sectionsData = response.data ?? []
+      self.isLoading = false
     }
   }
   
@@ -62,6 +63,17 @@ final class CategoryHubViewModel {
   }
   
   func numberOfItems(at sectionIndex: Int) -> Int {
+    if isLoading {
+      switch sectionIndex {
+      case 0: return 2
+      case 1: return 1
+      case 2: return 1
+      case 3: return 1
+      case 4: return 4
+      default: return 0
+      }
+    }
+    
     guard let data = sectionData(at: sectionIndex) else { return 0 }
     switch sectionIndex {
     case 0:
