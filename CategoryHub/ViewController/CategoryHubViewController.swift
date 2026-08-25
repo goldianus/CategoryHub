@@ -84,6 +84,7 @@ final class CategoryHubViewController: UIViewController {
     Publishers.CombineLatest(viewModel.$sectionsData, viewModel.$isLoading)
       .receive(on: DispatchQueue.main)
       .sink { [weak self] _, _ in
+        /// note: karena saat ini menggunakan collectionView.reloadData(), seluruh UICollectionView akan di-render ulang secara penuh setiap kali kategori atau status loading berubah.
         self?.collectionView.reloadData()
       }
       .store(in: &cancellables)
@@ -92,7 +93,6 @@ final class CategoryHubViewController: UIViewController {
   // MARK: - CollectionView Setup
   private func setupCollectionView() {
     view.addSubview(collectionView)
-    
     collectionView.snp.makeConstraints { make in
       make.top.equalTo(categoryHeaderView.snp.bottom)
       make.leading.trailing.bottom.equalToSuperview()
@@ -173,7 +173,7 @@ final class CategoryHubViewController: UIViewController {
   }
 }
 
-// MARK: - UICollectionViewDataSource (Dynamic Implementation with Shimmer)
+// MARK: - UICollectionViewDataSource
 extension CategoryHubViewController: UICollectionViewDataSource {
   
   func numberOfSections(in collectionView: UICollectionView) -> Int {
@@ -194,7 +194,9 @@ extension CategoryHubViewController: UICollectionViewDataSource {
     
     switch sectionType {
     case .sliderBanner:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath) as! SliderBannerCell
+      guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath) as? SliderBannerCell else {
+        return UICollectionViewCell()
+      }
       cell.showShimmer(isLoading)
       if !isLoading {
         if let banners = sectionData?.banners, banners.indices.contains(indexPath.item) {
@@ -206,7 +208,9 @@ extension CategoryHubViewController: UICollectionViewDataSource {
       return cell
       
     case .textContent:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath) as! TextContentCell
+      guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath) as? TextContentCell else {
+        return UICollectionViewCell()
+      }
       cell.showShimmer(isLoading)
       if !isLoading {
         cell.configure(title: sectionData?.title, textContent: sectionData?.textContent)
@@ -214,7 +218,9 @@ extension CategoryHubViewController: UICollectionViewDataSource {
       return cell
       
     case .videoBanner:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath) as! VideoBannerCell
+      guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath) as? VideoBannerCell else {
+        return UICollectionViewCell()
+      }
       cell.showShimmer(isLoading)
       if !isLoading {
         cell.configure(title: sectionData?.title, description: sectionData?.description)
@@ -222,7 +228,9 @@ extension CategoryHubViewController: UICollectionViewDataSource {
       return cell
       
     case .staticBanner:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath) as! StaticBannerCell
+      guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath) as? StaticBannerCell else {
+        return UICollectionViewCell()
+      }
       cell.showShimmer(isLoading)
       if !isLoading {
         if let banners = sectionData?.banners, banners.indices.contains(indexPath.item) {
@@ -234,7 +242,9 @@ extension CategoryHubViewController: UICollectionViewDataSource {
       return cell
       
     case .highlightedProduct:
-      let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath) as! HighlightedProductCell
+      guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath) as? HighlightedProductCell else {
+        return UICollectionViewCell()
+      }
       cell.showShimmer(isLoading)
       if !isLoading {
         cell.configure(categoryName: viewModel.selectedCategoryName, itemIndex: indexPath.item)

@@ -92,31 +92,33 @@ final class CategoryHubViewModel {
   }
   
   func numberOfItems(at sectionIndex: Int) -> Int {
+    guard let section = Section(rawValue: sectionIndex) else { return 0 }
+    
     if isLoading {
-      switch sectionIndex {
-      case 0: return 2
-      case 1: return 1
-      case 2: return 1
-      case 3: return 1
-      case 4: return 4
-      default: return 0
+      switch section {
+      case .sliderBanner:
+        return 2
+      case .textContent:
+        return 1
+      case .videoBanner:
+        return 1
+      case .staticBanner:
+        return 1
+      case .highlightedProduct:
+        return 4
       }
     }
     
     guard let data = sectionData(at: sectionIndex) else { return 0 }
-    switch sectionIndex {
-    case 0:
+    switch section {
+    case .sliderBanner, .staticBanner:
       return data.banners?.count ?? 0
-    case 1:
+    case .textContent:
       return data.textContent != nil ? 1 : 0
-    case 2:
+    case .videoBanner:
       return data.videoURL != nil ? 1 : 0
-    case 3:
-      return data.banners?.count ?? 0
-    case 4:
+    case .highlightedProduct:
       return 4
-    default:
-      return 0
     }
   }
 }
