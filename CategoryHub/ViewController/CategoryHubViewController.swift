@@ -73,7 +73,13 @@ final class CategoryHubViewController: UIViewController {
   
   // MARK: - View Model Binding
   private func bindViewModel() {
-    categoryHeaderView.setCategories(viewModel.categories, defaultIndex: viewModel.selectedCategoryIndex)
+    viewModel.$categories
+      .receive(on: DispatchQueue.main)
+      .sink { [weak self] categories in
+        guard let self = self, !categories.isEmpty else { return }
+        self.categoryHeaderView.setCategories(categories, defaultIndex: self.viewModel.selectedCategoryIndex)
+      }
+      .store(in: &cancellables)
     
     Publishers.CombineLatest(viewModel.$sectionsData, viewModel.$isLoading)
       .receive(on: DispatchQueue.main)
