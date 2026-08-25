@@ -63,3 +63,6 @@ playground.xcworkspace
 
 # Swift Package Manager
 # Package.resolved
+
+# Antigravity agents customization
+.agents/
