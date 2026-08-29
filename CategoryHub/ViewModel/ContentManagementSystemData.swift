@@ -8,7 +8,7 @@
 import Foundation
 
 // MARK: - Section Identifier
-enum Section: Int, CaseIterable {
+enum Section: Int, CaseIterable, Hashable, Sendable {
   case sliderBanner
   case textContent
   case videoBanner
@@ -115,7 +115,7 @@ public struct ContentManagementSystemData: Codable, Hashable {
 }
 
 // MARK: - ContentManagementSystemBanner
-public struct ContentManagementSystemBanner: Codable, Hashable {
+public struct ContentManagementSystemBanner: Codable, Hashable, Sendable {
   public let imageTitle: String?
   public let imageCTALink: String?
   public let imageDeeplink: String?
