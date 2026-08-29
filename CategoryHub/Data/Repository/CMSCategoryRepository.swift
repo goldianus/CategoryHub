@@ -21,7 +21,7 @@ final class CMSCategoryRepository: CategoryRepository {
   }
   
   func fetchCategorySections(for categoryName: String) async throws -> [ContentManagementSystemData] {
-    try await Task.sleep(nanoseconds: 2_000_000_000)
+    try await Task.sleep(nanoseconds: 500_000_000)
     let response = CMSMockData.getMockResponse(for: categoryName)
     return response.data ?? []
   }

@@ -72,6 +72,33 @@ final class CategoryHubViewController: UIViewController {
   }
   
   // MARK: - View Model Binding
+  
+  /// Crash update
+//  private func bindViewModel() {
+//    viewModel.$categories
+//      .receive(on: DispatchQueue.main)
+//      .sink { [weak self] categories in
+//        guard let self = self, !categories.isEmpty else { return }
+//        self.categoryHeaderView.setCategories(categories, defaultIndex: self.viewModel.selectedCategoryIndex)
+//      }
+//      .store(in: &cancellables)
+//    
+//    Publishers.CombineLatest(viewModel.$sectionsData, viewModel.$isLoading)
+//      .receive(on: DispatchQueue.main)
+//      .sink { [weak self] _, _ in
+//        guard let self = self else { return }
+////        // 1. Penyebab NSInternalInconsistencyException:
+////        // Memanggil batch update / insertItems ketika data source dan jumlah cell UI tidak sinkron.
+//        self.collectionView.performBatchUpdates {
+//          self.collectionView.insertItems(at: [IndexPath(item: 0, section: 0)])
+//        } completion: { _ in
+//          self.collectionView.reloadData()
+//        }
+//      }
+//    .store(in: &cancellables)
+//  }
+  
+  /// Normal update
   private func bindViewModel() {
     viewModel.$categories
       .receive(on: DispatchQueue.main)
@@ -84,8 +111,8 @@ final class CategoryHubViewController: UIViewController {
     Publishers.CombineLatest(viewModel.$sectionsData, viewModel.$isLoading)
       .receive(on: DispatchQueue.main)
       .sink { [weak self] _, _ in
-        /// note: karena saat ini menggunakan collectionView.reloadData(), seluruh UICollectionView akan di-render ulang secara penuh setiap kali kategori atau status loading berubah.
-        self?.collectionView.reloadData()
+        guard let self = self else { return }
+        self.collectionView.reloadData()
       }
       .store(in: &cancellables)
   }
@@ -180,8 +207,12 @@ extension CategoryHubViewController: UICollectionViewDataSource {
     return Section.allCases.count
   }
   
+  /// Crash implement
   func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-    return viewModel.numberOfItems(at: section)
+    let actualCount = viewModel.numberOfItems(at: section)
+    // 2. Penyebab Index Out Of Bounds / NSInternalInconsistencyException:
+    // Mengembalikan jumlah item yang tidak sinkron (lebih besar) daripada data aktual di Data Source.
+    return actualCount > 0 ? actualCount + 5 : 0
   }
   
   func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
@@ -199,10 +230,9 @@ extension CategoryHubViewController: UICollectionViewDataSource {
       }
       cell.showShimmer(isLoading)
       if !isLoading {
-        if let banners = sectionData?.banners, banners.indices.contains(indexPath.item) {
+        if let banners = sectionData?.banners {
+          // Akses array tanpa pengecekan batas (bounds check) -> Index Out Of Bounds Crash saat indexPath.item >= banners.count
           cell.configure(with: banners[indexPath.item])
-        } else {
-          cell.configure(with: sectionData?.banners?.first)
         }
       }
       return cell

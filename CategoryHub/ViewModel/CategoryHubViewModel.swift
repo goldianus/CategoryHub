@@ -47,14 +47,16 @@ final class CategoryHubViewModel {
     guard index >= 0 && index < categories.count, index != selectedCategoryIndex else { return }
     selectedCategoryIndex = index
     let categoryName = categories[index]
-    fetchData(for: categoryName)
+    fetchData(for: categoryName, showSkeleton: false)
   }
   
-  func fetchData(for categoryName: String) {
+  func fetchData(for categoryName: String, showSkeleton: Bool = false) {
     fetchTask?.cancel()
     
-    isLoading = true
-    sectionsData = []
+    if showSkeleton {
+      isLoading = true
+      sectionsData = []
+    }
     
     fetchTask = Task { [weak self] in
       guard let self = self else { return }
@@ -78,7 +80,7 @@ final class CategoryHubViewModel {
         let categoriesList = try await self.fetchCategoriesUseCase.execute()
         self.categories = categoriesList
         if let initialCategory = categoriesList.first {
-          self.fetchData(for: initialCategory)
+          self.fetchData(for: initialCategory, showSkeleton: true)
         }
       } catch {
         self.categories = []
