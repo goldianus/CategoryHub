@@ -10,40 +10,43 @@ import SwiftUI
 import SnapKit
 import Combine
 
-// MARK: - Diffable Data Source Item Definition
+// MARK: - Diffable Identifiers
 nonisolated enum CategoryHubItem: Hashable, Sendable {
-  case sliderBanner(ContentManagementSystemBanner)
-  case textContent(title: String?, textContent: String?)
-  case videoBanner(title: String?, description: String?)
-  case staticBanner(banner: ContentManagementSystemBanner, sectionTitle: String?)
-  case highlightedProduct(categoryName: String, itemIndex: Int)
+  case sliderBanner(index: Int)
+  case textContent
+  case videoBanner
+  case staticBanner(index: Int)
+  case highlightedProduct(index: Int)
   case skeleton(section: Section, index: Int)
+}
+
+private enum CategoryHubItemPayload: Equatable {
+  case banner(ContentManagementSystemBanner)
+  case text(title: String?, textContent: String?)
+  case video(title: String?, description: String?)
+  case staticBanner(banner: ContentManagementSystemBanner, sectionTitle: String?)
+  case product(categoryName: String, index: Int)
 }
 
 // MARK: - CategoryHubDiffableViewController Implementation
 @MainActor
 final class CategoryHubDiffableViewController: UIViewController {
-  
   private let categoryHeaderView = CategoryHeaderView()
   private let viewModel = CategoryHubViewModel()
   private var cancellables = Set<AnyCancellable>()
+  private var payloads: [CategoryHubItem: CategoryHubItemPayload] = [:]
+  private var hasAppliedSnapshot = false
   
   private lazy var dataSource: UICollectionViewDiffableDataSource<Section, CategoryHubItem> = makeDataSource()
   
   private lazy var collectionView: UICollectionView = {
-    let layout = createCompositionalLayout()
-    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
+    let collectionView = UICollectionView(frame: .zero, collectionViewLayout: createCompositionalLayout())
     collectionView.backgroundColor = .systemGroupedBackground
-    collectionView.register(SliderBannerCell.self, forCellWithReuseIdentifier: SliderBannerCell.reuseIdentifier)
-    collectionView.register(TextContentCell.self, forCellWithReuseIdentifier: TextContentCell.reuseIdentifier)
-    collectionView.register(VideoBannerCell.self, forCellWithReuseIdentifier: VideoBannerCell.reuseIdentifier)
-    collectionView.register(StaticBannerCell.self, forCellWithReuseIdentifier: StaticBannerCell.reuseIdentifier)
-    collectionView.register(HighlightedProductCell.self, forCellWithReuseIdentifier: HighlightedProductCell.reuseIdentifier)
     return collectionView
   }()
   
   override var preferredStatusBarStyle: UIStatusBarStyle {
-    return .lightContent
+    .lightContent
   }
   
   override func viewWillAppear(_ animated: Bool) {
@@ -88,8 +91,8 @@ final class CategoryHubDiffableViewController: UIViewController {
     viewModel.$categories
       .receive(on: DispatchQueue.main)
       .sink { [weak self] categories in
-        guard let self = self, !categories.isEmpty else { return }
-        self.categoryHeaderView.setCategories(categories, defaultIndex: self.viewModel.selectedCategoryIndex)
+        guard let self, !categories.isEmpty else { return }
+        categoryHeaderView.setCategories(categories, defaultIndex: viewModel.selectedCategoryIndex)
       }
       .store(in: &cancellables)
     
@@ -112,129 +115,198 @@ final class CategoryHubDiffableViewController: UIViewController {
     collectionView.dataSource = dataSource
   }
   
+  // MARK: - Cell Registrations
+  private func makeSliderBannerRegistration() -> UICollectionView.CellRegistration<SliderBannerCell, CategoryHubItem> {
+    UICollectionView.CellRegistration { [weak self] cell, _, item in
+      guard let self else { return }
+      if case .skeleton = item {
+        cell.showShimmer(true)
+        return
+      }
+      cell.showShimmer(false)
+      if case .banner(let banner) = payloads[item] {
+        cell.configure(with: banner)
+      }
+    }
+  }
+  
+  private func makeTextContentRegistration() -> UICollectionView.CellRegistration<TextContentCell, CategoryHubItem> {
+    UICollectionView.CellRegistration { [weak self] cell, _, item in
+      guard let self else { return }
+      if case .skeleton = item {
+        cell.showShimmer(true)
+        return
+      }
+      cell.showShimmer(false)
+      if case .text(let title, let textContent) = payloads[item] {
+        cell.configure(title: title, textContent: textContent)
+      }
+    }
+  }
+  
+  private func makeVideoBannerRegistration() -> UICollectionView.CellRegistration<VideoBannerCell, CategoryHubItem> {
+    UICollectionView.CellRegistration { [weak self] cell, _, item in
+      guard let self else { return }
+      if case .skeleton = item {
+        cell.showShimmer(true)
+        return
+      }
+      cell.showShimmer(false)
+      if case .video(let title, let description) = payloads[item] {
+        cell.configure(title: title, description: description)
+      }
+    }
+  }
+  
+  private func makeStaticBannerRegistration() -> UICollectionView.CellRegistration<StaticBannerCell, CategoryHubItem> {
+    UICollectionView.CellRegistration { [weak self] cell, _, item in
+      guard let self else { return }
+      if case .skeleton = item {
+        cell.showShimmer(true)
+        return
+      }
+      cell.showShimmer(false)
+      if case .staticBanner(let banner, let sectionTitle) = payloads[item] {
+        cell.configure(with: banner, sectionTitle: sectionTitle)
+      }
+    }
+  }
+  
+  private func makeHighlightedProductRegistration() -> UICollectionView.CellRegistration<HighlightedProductCell, CategoryHubItem> {
+    UICollectionView.CellRegistration { [weak self] cell, _, item in
+      guard let self else { return }
+      if case .skeleton = item {
+        cell.showShimmer(true)
+        return
+      }
+      cell.showShimmer(false)
+      if case .product(let categoryName, let index) = payloads[item] {
+        cell.configure(categoryName: categoryName, itemIndex: index)
+      }
+    }
+  }
+  
   // MARK: - UICollectionViewDiffableDataSource Configuration
   private func makeDataSource() -> UICollectionViewDiffableDataSource<Section, CategoryHubItem> {
-    return UICollectionViewDiffableDataSource<Section, CategoryHubItem>(collectionView: collectionView) { collectionView, indexPath, item in
+    let sliderBannerRegistration = makeSliderBannerRegistration()
+    let textContentRegistration = makeTextContentRegistration()
+    let videoBannerRegistration = makeVideoBannerRegistration()
+    let staticBannerRegistration = makeStaticBannerRegistration()
+    let highlightedProductRegistration = makeHighlightedProductRegistration()
+    
+    return UICollectionViewDiffableDataSource(collectionView: collectionView) { collectionView, indexPath, item in
       switch item {
-      case .skeleton(let section, _):
-        switch section {
-        case .sliderBanner:
-          let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath) as? SliderBannerCell
-          cell?.showShimmer(true)
-          return cell ?? UICollectionViewCell()
-        case .textContent:
-          let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath) as? TextContentCell
-          cell?.showShimmer(true)
-          return cell ?? UICollectionViewCell()
-        case .videoBanner:
-          let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath) as? VideoBannerCell
-          cell?.showShimmer(true)
-          return cell ?? UICollectionViewCell()
-        case .staticBanner:
-          let cell = collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath) as? StaticBannerCell
-          cell?.showShimmer(true)
-          return cell ?? UICollectionViewCell()
-        case .highlightedProduct:
-          let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath) as? HighlightedProductCell
-          cell?.showShimmer(true)
-          return cell ?? UICollectionViewCell()
-        }
-        
-      case .sliderBanner(let banner):
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: SliderBannerCell.reuseIdentifier, for: indexPath) as? SliderBannerCell else {
-          return UICollectionViewCell()
-        }
-        cell.showShimmer(false)
-        cell.configure(with: banner)
-        return cell
-
-      case .textContent(let title, let content):
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TextContentCell.reuseIdentifier, for: indexPath) as? TextContentCell else {
-          return UICollectionViewCell()
-        }
-        cell.showShimmer(false)
-        cell.configure(title: title, textContent: content)
-        return cell
-
-      case .videoBanner(let title, let description):
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: VideoBannerCell.reuseIdentifier, for: indexPath) as? VideoBannerCell else {
-          return UICollectionViewCell()
-        }
-        cell.showShimmer(false)
-        cell.configure(title: title, description: description)
-        return cell
-
-      case .staticBanner(let banner, let sectionTitle):
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: StaticBannerCell.reuseIdentifier, for: indexPath) as? StaticBannerCell else {
-          return UICollectionViewCell()
-        }
-        cell.showShimmer(false)
-        cell.configure(with: banner, sectionTitle: sectionTitle)
-        return cell
-
-      case .highlightedProduct(let categoryName, let itemIndex):
-        guard let cell = collectionView.dequeueReusableCell(withReuseIdentifier: HighlightedProductCell.reuseIdentifier, for: indexPath) as? HighlightedProductCell else {
-          return UICollectionViewCell()
-        }
-        cell.showShimmer(false)
-        cell.configure(categoryName: categoryName, itemIndex: itemIndex)
-        return cell
+      case .sliderBanner, .skeleton(.sliderBanner, _):
+        collectionView.dequeueConfiguredReusableCell(using: sliderBannerRegistration, for: indexPath, item: item)
+      case .textContent, .skeleton(.textContent, _):
+        collectionView.dequeueConfiguredReusableCell(using: textContentRegistration, for: indexPath, item: item)
+      case .videoBanner, .skeleton(.videoBanner, _):
+        collectionView.dequeueConfiguredReusableCell(using: videoBannerRegistration, for: indexPath, item: item)
+      case .staticBanner, .skeleton(.staticBanner, _):
+        collectionView.dequeueConfiguredReusableCell(using: staticBannerRegistration, for: indexPath, item: item)
+      case .highlightedProduct, .skeleton(.highlightedProduct, _):
+        collectionView.dequeueConfiguredReusableCell(using: highlightedProductRegistration, for: indexPath, item: item)
       }
     }
   }
   
   // MARK: - Snapshot Application
-  private func applySnapshot(animatingDifferences: Bool = true) {
+  private func applySnapshot() {
+    let previousSnapshot = dataSource.snapshot()
+    let previousPayloads = payloads
+    let (snapshot, nextPayloads) = makeContentSnapshot()
+    
+    let itemsToReconfigure = snapshot.itemIdentifiers.filter { item in
+      previousSnapshot.indexOfItem(item) != nil && previousPayloads[item] != nextPayloads[item]
+    }
+    
+    payloads = nextPayloads
+    
+    if hasAppliedSnapshot,
+       snapshot.sectionIdentifiers == previousSnapshot.sectionIdentifiers,
+       snapshot.itemIdentifiers == previousSnapshot.itemIdentifiers,
+       itemsToReconfigure.isEmpty {
+      return
+    }
+    
+    var snapshotToApply = snapshot
+    if !itemsToReconfigure.isEmpty {
+      snapshotToApply.reconfigureItems(itemsToReconfigure)
+    }
+    
+    dataSource.apply(snapshotToApply, animatingDifferences: hasAppliedSnapshot)
+    hasAppliedSnapshot = true
+  }
+  
+  private func makeContentSnapshot() -> (
+    NSDiffableDataSourceSnapshot<Section, CategoryHubItem>,
+    [CategoryHubItem: CategoryHubItemPayload]
+  ) {
     var snapshot = NSDiffableDataSourceSnapshot<Section, CategoryHubItem>()
     snapshot.appendSections(Section.allCases)
+    var nextPayloads: [CategoryHubItem: CategoryHubItemPayload] = [:]
     
     if viewModel.isLoading {
-      snapshot.appendItems((0..<2).map { CategoryHubItem.skeleton(section: .sliderBanner, index: $0) }, toSection: Section.sliderBanner)
-      snapshot.appendItems([CategoryHubItem.skeleton(section: .textContent, index: 0)], toSection: Section.textContent)
-      snapshot.appendItems([CategoryHubItem.skeleton(section: .videoBanner, index: 0)], toSection: Section.videoBanner)
-      snapshot.appendItems([CategoryHubItem.skeleton(section: .staticBanner, index: 0)], toSection: Section.staticBanner)
-      snapshot.appendItems((0..<4).map { CategoryHubItem.skeleton(section: .highlightedProduct, index: $0) }, toSection: Section.highlightedProduct)
-    } else {
-      for section in Section.allCases {
-        guard let sectionData = viewModel.sectionData(at: section.rawValue) else { continue }
-        switch section {
-        case .sliderBanner:
-          if let banners = sectionData.banners {
-            let items = banners.map { CategoryHubItem.sliderBanner($0) }
-            snapshot.appendItems(items, toSection: Section.sliderBanner)
-          }
-        case .textContent:
-          if sectionData.textContent != nil {
-            snapshot.appendItems([CategoryHubItem.textContent(title: sectionData.title, textContent: sectionData.textContent)], toSection: Section.textContent)
-          }
-        case .videoBanner:
-          if sectionData.videoURL != nil {
-            snapshot.appendItems([CategoryHubItem.videoBanner(title: sectionData.title, description: sectionData.description)], toSection: Section.videoBanner)
-          }
-        case .staticBanner:
-          if let banners = sectionData.banners {
-            let items = banners.map { CategoryHubItem.staticBanner(banner: $0, sectionTitle: sectionData.title) }
-            snapshot.appendItems(items, toSection: Section.staticBanner)
-          }
-        case .highlightedProduct:
-          let items = (0..<4).map { CategoryHubItem.highlightedProduct(categoryName: viewModel.selectedCategoryName, itemIndex: $0) }
-          snapshot.appendItems(items, toSection: Section.highlightedProduct)
+      snapshot.appendItems((0..<2).map { .skeleton(section: .sliderBanner, index: $0) }, toSection: .sliderBanner)
+      snapshot.appendItems([.skeleton(section: .textContent, index: 0)], toSection: .textContent)
+      snapshot.appendItems([.skeleton(section: .videoBanner, index: 0)], toSection: .videoBanner)
+      snapshot.appendItems([.skeleton(section: .staticBanner, index: 0)], toSection: .staticBanner)
+      snapshot.appendItems((0..<4).map { .skeleton(section: .highlightedProduct, index: $0) }, toSection: .highlightedProduct)
+      return (snapshot, nextPayloads)
+    }
+    
+    for section in Section.allCases {
+      guard let sectionData = viewModel.sectionData(at: section.rawValue) else { continue }
+      switch section {
+      case .sliderBanner:
+        guard let banners = sectionData.banners else { continue }
+        var items: [CategoryHubItem] = []
+        for (index, banner) in banners.enumerated() {
+          let item = CategoryHubItem.sliderBanner(index: index)
+          items.append(item)
+          nextPayloads[item] = .banner(banner)
         }
+        snapshot.appendItems(items, toSection: .sliderBanner)
+      case .textContent:
+        guard sectionData.textContent != nil else { continue }
+        nextPayloads[.textContent] = .text(title: sectionData.title, textContent: sectionData.textContent)
+        snapshot.appendItems([.textContent], toSection: .textContent)
+      case .videoBanner:
+        guard sectionData.videoURL != nil else { continue }
+        nextPayloads[.videoBanner] = .video(title: sectionData.title, description: sectionData.description)
+        snapshot.appendItems([.videoBanner], toSection: .videoBanner)
+      case .staticBanner:
+        guard let banners = sectionData.banners else { continue }
+        var items: [CategoryHubItem] = []
+        for (index, banner) in banners.enumerated() {
+          let item = CategoryHubItem.staticBanner(index: index)
+          items.append(item)
+          nextPayloads[item] = .staticBanner(banner: banner, sectionTitle: sectionData.title)
+        }
+        snapshot.appendItems(items, toSection: .staticBanner)
+      case .highlightedProduct:
+        var items: [CategoryHubItem] = []
+        for index in 0..<4 {
+          let item = CategoryHubItem.highlightedProduct(index: index)
+          items.append(item)
+          nextPayloads[item] = .product(categoryName: viewModel.selectedCategoryName, index: index)
+        }
+        snapshot.appendItems(items, toSection: .highlightedProduct)
       }
     }
     
-    dataSource.apply(snapshot, animatingDifferences: animatingDifferences)
+    return (snapshot, nextPayloads)
   }
   
   // MARK: - Compositional Layout Setup
   private func createCompositionalLayout() -> UICollectionViewCompositionalLayout {
-    return UICollectionViewCompositionalLayout { [weak self] sectionIndex, layoutEnvironment in
-      guard let self = self, let sectionType = Section(rawValue: sectionIndex) else { return nil }
+    UICollectionViewCompositionalLayout { [weak self] sectionIndex, _ in
+      guard let self else { return nil }
+      let snapshot = dataSource.snapshot()
+      guard sectionIndex < snapshot.sectionIdentifiers.count else { return nil }
+      let sectionType = snapshot.sectionIdentifiers[sectionIndex]
       
-      let snapshot = self.dataSource.snapshot()
-      let itemCount = snapshot.numberOfItems(inSection: sectionType)
-      
-      if itemCount == 0 {
+      if snapshot.numberOfItems(inSection: sectionType) == 0 {
         let item = NSCollectionLayoutItem(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(0.01)))
         let group = NSCollectionLayoutGroup.horizontal(layoutSize: .init(widthDimension: .fractionalWidth(1), heightDimension: .absolute(0.01)), subitems: [item])
         let section = NSCollectionLayoutSection(group: group)
@@ -244,15 +316,15 @@ final class CategoryHubDiffableViewController: UIViewController {
       
       switch sectionType {
       case .sliderBanner:
-        return self.createSliderBannerSectionLayout()
+        return createSliderBannerSectionLayout()
       case .textContent:
-        return self.createTextContentSectionLayout()
+        return createTextContentSectionLayout()
       case .videoBanner:
-        return self.createVideoBannerSectionLayout()
+        return createVideoBannerSectionLayout()
       case .staticBanner:
-        return self.createStaticBannerSectionLayout()
+        return createStaticBannerSectionLayout()
       case .highlightedProduct:
-        return self.createHighlightedProductSectionLayout()
+        return createHighlightedProductSectionLayout()
       }
     }
   }
